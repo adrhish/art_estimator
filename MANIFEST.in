@@ -1,0 +1,3 @@
+graft art_estimator
+global-exclude *.py[cod] __pycache__ *.so *.ipynb
+recursive-exclude  art_estimator/jupy *
