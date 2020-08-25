@@ -1,46 +1,7 @@
-'''
-Username : palifa1229@ermailo.com
-
-Password : BvEDAmYRtd3psV8
-
-'''
-
-import requests
-import pandas as pd
-from bs4 import BeautifulSoup
-from requests import Session
-import shutil
-import re
-
-cookies = {
-    'LANGAUGE': 'english',
-    '__RequestVerificationToken': 'P-XoVem8zlsPZsfy5tdKoq2YFNteg3Hnq0QD0A4OWI0T65ikEajMChQ9seYoC6iQzrltbIpjhNlemYRhhabhQuiC2gRHRnGD8qGPlwPYq8rkUk5cuEqLIA6SIviILSF2fl207IPjkEzmP6szgPh_-A2',
-    'ASP.NET_SessionId': 'zovc0cio2yuw2pvkfrvpz5ny',
-}
-
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:79.0) Gecko/20100101 Firefox/79.0',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Referer': 'http://www.findartinfo.com/english/list-prices-by-artist/119744/herman-hgg.html',
-    'Upgrade-Insecure-Requests': '1',
-}
-
-response = requests.get('http://www.findartinfo.com/english/price-info/3871826/main.html', headers=headers, cookies=cookies)
-soup = BeautifulSoup(response.content,'html.parser')
-
-
-#TODO 
-paintings = [] 
-
 import time
 import random
 
-sleep = 0.2
-
-time.sleep( sleep )
+sleep = 0.1
  
 #Looping over the artists on page letter_page of letter: 
 for letter in ['A']: #add all the letters
@@ -51,29 +12,53 @@ for letter in ['A']: #add all the letters
                                        'html.parser')
     max_pages_for_letter = int(page_soup.find_all('a')[-15]['href'][-8:-5])
     
-    for letter_page in range(1,max_pages_for_letter): 
+    for letter_page in range(21,max_pages_for_letter): 
+        print(f'Total number of observations for far: {len(paintings)}')
         print(f'now starting page {letter_page} of letter {letter}... ...')
+        
+         
+        #looping over all artists for the page:
+        for j in range(49,49+60):
             
-        for j in range(49,49+61):
-            print(f'scraping artist {j} on page {letter_page} of letter {letter}')
-
-            #max_pages_for_artist = 
             try:
-                soup = BeautifulSoup(requests.get(f'http://www.findartinfo.com/english/{letter}/browse-by-artist/page/{letter_page}.html').content,
+                artists_html = BeautifulSoup(requests.get(f'http://www.findartinfo.com/english/{letter}/browse-by-artist/page/{letter_page}.html').content,
                                            'html.parser')
-                URL_extend = soup.find_all('a', href=True)[j]['href']
-                #max_pages_artist = int(soup.find_all('h2')[0].text.strip(' \r\n ')[22:26])
-                print(f'URL_extend: {URL_extend}')
+
+                #fetches the link to access the artist_page
+                URL_extend = artists_html.find_all('a', href=True)[j]['href']
+
+                artist_html = BeautifulSoup(requests.get(f'http://www.findartinfo.com{URL_extend}').content,
+                                           'html.parser')
+
+                max_pages_artist = int(artist_html.find_all('h2')[0].text.strip(' \r\n ').split(' ')[19])
+
             except Exception as exception:
-                print('max pages',exception)
-                continue
-            for artist_page in range(1,4):
-                #print(f'scraping page{artist_page} of artist {j} on page {letter_page} of letter {letter}')
+                print('Error for max artist pages:',exception)
+                print(f'setting max_pages_artist manuallay to 5')
+                max_pages_artist = 5
+                time.sleep(2)
+                
+            for artist_page in range(1,max_pages_artist+1):
+                
                 time.sleep(sleep)
                 
+                try:
+                    artists_paintings = int(artist_html.find_all('h2')[0].text.strip(' \r\n ').split(' ')[7])
+                    if  artists_paintings < 5:
+                        print(f'{j} has too few paintings ({artists_paintings}).')
+                        continue
+                    else:
+                        #print('this artist has more than 5 paintings.')
+                        max_paintings_per_page = min(int(soup_extended.find_all('h2')[0].text.strip(' \r\n ').split(' ')[7]),30)
+                except: 
+                    print('could not fetch number of paintings for artist.')
+                    artists_paintings = 'Unknown'
+                    max_paintings_per_page = 30
+                    
+                print(f'scraping artist {j} {artist_page}/{max_pages_artist} on page {letter_page} of letter {letter} ({artists_paintings} paintings)')
                 artist_soup = BeautifulSoup(requests.get(f'http://www.findartinfo.com{URL_extend[:-5]}/page/{artist_page}.html', 
                                                    headers=headers, cookies=cookies).content, 'html.parser')
-                for image_number in range(0,31): 
+                for image_number in range(0,max_paintings_per_page): 
                     try:
                         URL_pic = artist_soup.find_all('span', class_='linkgoogle')[image_number].find('a', href=True)['href']
                         response = requests.get(f'http://www.findartinfo.com{URL_pic}', headers=headers, cookies=cookies)
@@ -143,7 +128,8 @@ for letter in ['A']: #add all the letters
                         #print(f'{title} by {artist} appended')
                         paintings.append(_dict)
                         
-                        try:  
+                        
+                        '''try:  
                             # Open the url image, set stream to True, this will return the stream content.
                             r = requests.get(soup.find_all('img')[4].get('src'), stream = True)
 
@@ -164,14 +150,20 @@ for letter in ['A']: #add all the letters
                                 _dict['img available'] = 'n'
                         except:
                             #print(f'Exception: Image unavailable: {title} by {artist}')
-                            _dict['img available'] = 'n'
+                            _dict['img available'] = 'n' '''
                             
                     except Exception as error:
                         print(error, f': painting has not been appended')
                         continue
             images_df = pd.DataFrame(paintings)
-            
             print()
+            
+        
     print(f'Letter {letter} completed')
-    
+    images_df.to_csv(f'{letter}paintings_df.csv', index=False)
 print('All letters completed.')
+pd.images_df
+    print(f'Letter {letter} completed')
+    images_df.to_csv(f'{letter}paintings_df.csv', index=False)
+print('All letters completed.')
+images_df
